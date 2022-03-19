@@ -1,6 +1,6 @@
 # TRANSLATOR-CLI
 
-Translate based on azure cognitive services
+Translate text based on azure cognitive services.
 
 ### How to run this project
 
