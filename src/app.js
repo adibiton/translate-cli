@@ -1,50 +1,30 @@
-import dotenv from "dotenv";
-dotenv.config({ path: new URL("../.env", import.meta.url) });
-import axios from "axios";
+#!/usr/bin/env node
+import { translate, ResponseStatus } from "./services/translation-service.js";
+import { addTerm, listTerms } from "./services/storage-service.js";
+import argv from "minimist";
 
-const azureTranslatorApiKey = process.env.OCP_APIM_SUBSCRIPTION_KEY;
-const azureCognitivePrefixURL = "https://api.cognitive.microsofttranslator.com";
+const args = argv(process.argv.slice(2));
 
-async function detect(phrase) {
-  const detectUrl = `${azureCognitivePrefixURL}/Detect?api-version=3.0`;
-  let response;
-  try {
-    response = await axios(buildRequest(detectUrl, phrase));
-  } catch (e) {
-    console.error(e);
-  } finally {
-    return parseDetectResponse(response);
+export async function main(argv) {
+  if (args?.list) {
+    const terms = await listTerms();
+    console.log(terms);
+  } else {
+    const phrase = argv._.join(" ");
+    const response = await translate(phrase);
+    if (response.status === ResponseStatus.Success) {
+      await addTerm(phrase, response.text);
+      console.log(response.text);
+    } else {
+      console.error(response.response.text);
+    }
   }
 }
 
-async function translate(argv) {
-  const phrase = argv._.join(" ");
-  const detectedLanguage = await detect(phrase);
-  const translateToLanguage = detectedLanguage === "en" ? "he" : "en";
-  const translateUrl = `${azureCognitivePrefixURL}/translate?api-version=3.0&to=${translateToLanguage}`;
-  let response;
-  try {
-    response = await axios(buildRequest(translateUrl, phrase));
-  } catch (e) {
+main(args).then(
+  () => process.exit(0),
+  (e) => {
     console.error(e);
-  } finally {
-    return parseTranslateResponse(phrase, response);
+    process.exit(1);
   }
-}
-
-const parseDetectResponse = (response) => response?.data[0]?.language ?? "en";
-
-const parseTranslateResponse = (phrase, response) => {
-  const translatedPhrase = response?.data[0].translations[0].text;
-  const defaultResponse = `Can't find a translation to the input: ${phrase}`;
-  return translatedPhrase && translatedPhrase !== phrase ? translatedPhrase : defaultResponse;
-};
-
-const buildRequest = (url, phrase) => ({
-  url,
-  data: [{ Text: `${phrase}` }],
-  method: "Post",
-  headers: { "Ocp-Apim-Subscription-Key": azureTranslatorApiKey, "Content-Type": "application/json" },
-});
-
-export { translate };
+);
