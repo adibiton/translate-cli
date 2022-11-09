@@ -31,6 +31,16 @@
   - You can create a symlink in the global folder that links to the package where the npm link command was executed
     by running `npm link` and then `translate <phrase>` from anywhere
 
-## Adding permissions
+### Commands
 
-we are using azure storage account as a data source for the translated words.
+translate a word
+
+```
+  translate <phrase>
+```
+
+list translated words
+
+```
+  translate --list
+```
